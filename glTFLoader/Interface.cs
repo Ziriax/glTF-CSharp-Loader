@@ -8,6 +8,19 @@ using Newtonsoft.Json;
 
 namespace glTFLoader
 {
+    public static class ArraySegmentExt
+    {
+        public static ArraySegment<T> Slice<T>(this T[] array)
+        {
+            return new ArraySegment<T>(array);
+        }
+
+        public static ArraySegment<T> Slice<T>(this T[] array, int offset, int count)
+        {
+            return new ArraySegment<T>(array, offset, count);
+        }
+    }
+
     public static class Interface
     {
         const uint GLTFHEADER = 0x46546C67;
@@ -190,7 +203,7 @@ namespace glTFLoader
         /// <param name="imageIndex">The index of the image</param>
         /// <param name="gltfFilePath">Source file path used to load the model</param>
         /// <returns>An open stream to the image</returns>
-        public static Stream OpenImageFile(this Gltf model, int imageIndex, string gltfFilePath)
+        public static ArraySegment<byte> OpenImageFile(this Gltf model, int imageIndex, string gltfFilePath)
         {
             return OpenImageFile(model, imageIndex, GetExternalFileSolver(gltfFilePath));
         }
@@ -263,7 +276,7 @@ namespace glTFLoader
         /// 
         /// The Lambda function must return the byte array of the requested file or buffer.
         /// </remarks>
-        public static Stream OpenImageFile(this Gltf model, int imageIndex, Func<string, Byte[]> externalReferenceSolver)
+        public static ArraySegment<byte> OpenImageFile(this Gltf model, int imageIndex, Func<string, Byte[]> externalReferenceSolver)
         {
             var image = model.Images[imageIndex];
 
@@ -273,17 +286,17 @@ namespace glTFLoader
 
                 var bufferBytes = model.LoadBinaryBuffer(bufferView.Buffer, externalReferenceSolver);
 
-                return new MemoryStream(bufferBytes, bufferView.ByteOffset, bufferView.ByteLength);
+                return bufferBytes.Slice(bufferView.ByteOffset, bufferView.ByteLength);
             }
 
-            if (image.Uri.StartsWith("data:image/")) return OpenEmbeddedImage(image);
+            if (image.Uri.StartsWith("data:image/")) return OpenEmbeddedImage(image).Slice();
 
             var imageData = externalReferenceSolver(image.Uri);
 
-            return new MemoryStream(imageData);
+            return imageData.Slice();
         }
 
-        private static Stream OpenEmbeddedImage(Image image)
+        private static byte[] OpenEmbeddedImage(Image image)
         {
             string content = null;
 
@@ -291,7 +304,7 @@ namespace glTFLoader
             if (image.Uri.StartsWith(EMBEDDEDJPEG)) content = image.Uri.Substring(EMBEDDEDJPEG.Length);
 
             var bytes = Convert.FromBase64String(content);
-            return new MemoryStream(bytes);
+            return bytes;
         }
 
         /// <summary>
