@@ -8,19 +8,6 @@ using Newtonsoft.Json;
 
 namespace glTFLoader
 {
-    public static class ArraySegmentExt
-    {
-        public static ArraySegment<T> Slice<T>(this T[] array)
-        {
-            return new ArraySegment<T>(array);
-        }
-
-        public static ArraySegment<T> Slice<T>(this T[] array, int offset, int count)
-        {
-            return new ArraySegment<T>(array, offset, count);
-        }
-    }
-
     public static class Interface
     {
         const uint GLTFHEADER = 0x46546C67;
@@ -286,14 +273,14 @@ namespace glTFLoader
 
                 var bufferBytes = model.LoadBinaryBuffer(bufferView.Buffer, externalReferenceSolver);
 
-                return bufferBytes.Slice(bufferView.ByteOffset, bufferView.ByteLength);
+                return new ArraySegment<byte>(bufferBytes, bufferView.ByteOffset, bufferView.ByteLength);
             }
 
-            if (image.Uri.StartsWith("data:image/")) return OpenEmbeddedImage(image).Slice();
+            if (image.Uri.StartsWith("data:image/")) return new ArraySegment<byte>(OpenEmbeddedImage(image));
 
             var imageData = externalReferenceSolver(image.Uri);
 
-            return imageData.Slice();
+            return new ArraySegment<byte>(imageData);
         }
 
         private static byte[] OpenEmbeddedImage(Image image)
