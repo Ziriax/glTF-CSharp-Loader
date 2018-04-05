@@ -57,7 +57,10 @@ namespace glTFLoaderUnitTests
                 // open all images
                 for(int i=0; i < deserializedFile.Images?.Length; ++i)
                 {
-                    using (var s = deserializedFile.OpenImageFile(i, filePath))
+                    var segment = deserializedFile.OpenImageFile(i, filePath);
+                    Assert.IsNotNull(segment.Array);
+
+                    using (var s = new MemoryStream(segment.Array, segment.Offset, segment.Count))
                     {
                         Assert.IsNotNull(s);
 

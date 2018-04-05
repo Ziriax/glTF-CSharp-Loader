@@ -190,7 +190,7 @@ namespace glTFLoader
         /// <param name="imageIndex">The index of the image</param>
         /// <param name="gltfFilePath">Source file path used to load the model</param>
         /// <returns>An open stream to the image</returns>
-        public static Stream OpenImageFile(this Gltf model, int imageIndex, string gltfFilePath)
+        public static ArraySegment<byte> OpenImageFile(this Gltf model, int imageIndex, string gltfFilePath)
         {
             return OpenImageFile(model, imageIndex, GetExternalFileSolver(gltfFilePath));
         }
@@ -263,7 +263,7 @@ namespace glTFLoader
         /// 
         /// The Lambda function must return the byte array of the requested file or buffer.
         /// </remarks>
-        public static Stream OpenImageFile(this Gltf model, int imageIndex, Func<string, Byte[]> externalReferenceSolver)
+        public static ArraySegment<byte> OpenImageFile(this Gltf model, int imageIndex, Func<string, Byte[]> externalReferenceSolver)
         {
             var image = model.Images[imageIndex];
 
@@ -273,17 +273,17 @@ namespace glTFLoader
 
                 var bufferBytes = model.LoadBinaryBuffer(bufferView.Buffer, externalReferenceSolver);
 
-                return new MemoryStream(bufferBytes, bufferView.ByteOffset, bufferView.ByteLength);
+                return new ArraySegment<byte>(bufferBytes, bufferView.ByteOffset, bufferView.ByteLength);
             }
 
-            if (image.Uri.StartsWith("data:image/")) return OpenEmbeddedImage(image);
+            if (image.Uri.StartsWith("data:image/")) return new ArraySegment<byte>(OpenEmbeddedImage(image));
 
             var imageData = externalReferenceSolver(image.Uri);
 
-            return new MemoryStream(imageData);
+            return new ArraySegment<byte>(imageData);
         }
 
-        private static Stream OpenEmbeddedImage(Image image)
+        private static byte[] OpenEmbeddedImage(Image image)
         {
             string content = null;
 
@@ -291,7 +291,7 @@ namespace glTFLoader
             if (image.Uri.StartsWith(EMBEDDEDJPEG)) content = image.Uri.Substring(EMBEDDEDJPEG.Length);
 
             var bytes = Convert.FromBase64String(content);
-            return new MemoryStream(bytes);
+            return bytes;
         }
 
         /// <summary>
